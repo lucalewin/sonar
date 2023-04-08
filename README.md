@@ -1,6 +1,6 @@
-# sonar
+# Sonar
 
-Windows driver which plays audio on Sonos devices
+Use your Sonos speakers as output for your PC audio
 
 ## Features
 
