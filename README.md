@@ -1,6 +1,7 @@
 # Sonar
 
-Use your Sonos speakers as output for your PC audio
+Use your Sonos speakers as output for your PC audio.  
+Inspired by [swyh-rs](https://github.com/dheijl/swyh-rs).
 
 ## Features
 
