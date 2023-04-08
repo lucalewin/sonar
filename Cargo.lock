@@ -3,5 +3,5 @@
 version = 3
 
 [[package]]
-name = "driver"
+name = "sonar"
 version = "0.1.0"
