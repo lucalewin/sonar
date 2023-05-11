@@ -1,5 +1,5 @@
 use cpal::{
-    traits::DeviceTrait, Device, InputCallbackInfo, SampleFormat, Stream, StreamError,
+    traits::DeviceTrait, Device, SampleFormat, Stream, StreamError,
     SupportedStreamConfig,
 };
 use crossbeam::channel::Sender;
@@ -43,10 +43,16 @@ fn capture_audio(device: &Device, config: SupportedStreamConfig, sender: Sender<
 }
 
 fn capture(_data: &[f32], sender: Sender<Vec<f32>>) {
-    sender.send(_data.to_vec());
+    // convert f32 slice to u32 vec
+
+    // debug!("data len: {}", _data.len());
+
+    sender.send(_data.to_vec()).unwrap();
     // TODO: implement function
 }
 
 fn capture_error(err: StreamError) {
     error!("{err}");
 }
+
+
