@@ -1,7 +1,11 @@
-use std::{net::{IpAddr, Ipv4Addr}, fs, path::PathBuf};
+use std::{
+    fs,
+    net::{IpAddr, Ipv4Addr},
+    path::PathBuf,
+};
 
 use log::LevelFilter;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use toml::from_str;
 
 use crate::{audio::format::StreamingFormat, APP_NAME};
@@ -12,7 +16,7 @@ pub struct Config {
     pub server: ServerConfig,
     pub device: Option<DeviceConfig>,
     pub renderer: Option<RendererConfig>,
-    pub audio: AudioConfig
+    pub audio: AudioConfig,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -20,32 +24,32 @@ pub struct AppConfig {
     pub log_level: LevelFilter,
     pub auto_reconnect: bool,
     pub inject_silence: bool,
-    pub capture_timeout: usize
+    pub capture_timeout: usize,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ServerConfig {
     pub network: IpAddr,
     pub port: u16,
-    pub workers: u16
+    pub workers: u16,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DeviceConfig {
     pub name: String,
-    pub index: usize
+    pub index: usize,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RendererConfig {
     pub name: String,
-    pub ip_addr: IpAddr
+    pub ip_addr: IpAddr,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AudioConfig {
     pub format: StreamingFormat,
-    pub bits_per_sample: u8
+    pub bits_per_sample: u8,
 }
 
 impl Default for AppConfig {
@@ -54,7 +58,7 @@ impl Default for AppConfig {
             log_level: LevelFilter::Info,
             auto_reconnect: true,
             inject_silence: true,
-            capture_timeout: 250
+            capture_timeout: 250,
         }
     }
 }
@@ -64,7 +68,7 @@ impl Default for ServerConfig {
         Self {
             network: IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
             port: 5901,
-            workers: 8
+            workers: 8,
         }
     }
 }
@@ -73,7 +77,7 @@ impl Default for AudioConfig {
     fn default() -> Self {
         Self {
             format: StreamingFormat::Wav,
-            bits_per_sample: 16
+            bits_per_sample: 16,
         }
     }
 }
@@ -109,16 +113,10 @@ impl Config {
             // create config directory
             fs::create_dir_all(config_dir).unwrap();
             // create config with default values
-            fs::write(
-                config_file,
-                toml::to_string_pretty(&config).unwrap()
-            ).unwrap();
+            fs::write(config_file, toml::to_string_pretty(&config).unwrap()).unwrap();
         } else if !config_file.exists() {
             // create config with default values
-            fs::write(
-                config_file,
-                toml::to_string_pretty(&config).unwrap()
-            ).unwrap();
+            fs::write(config_file, toml::to_string_pretty(&config).unwrap()).unwrap();
         }
     }
 }
