@@ -68,7 +68,7 @@ impl ChannelStream {
             wav_hdr: if !use_wave_format {
                 Vec::new()
             } else {
-                create_wav_hdr(sample_rate, bits_per_sample)
+                create_wav_header(sample_rate, bits_per_sample)
             },
             use_wave_format,
             bits_per_sample,
@@ -177,7 +177,7 @@ impl Read for ChannelStream {
 // create an "infinite size" wav hdr
 // note this may not work when streaming to a "libsndfile" based renderer
 // as libsndfile insists on a seekable WAV file depending on the open mode used
-fn create_wav_hdr(sample_rate: u32, bits_per_sample: u16) -> Vec<u8> {
+pub fn create_wav_header(sample_rate: u32, bits_per_sample: u16) -> Vec<u8> {
     let mut hdr = [0u8; 44];
     let channels: u16 = 2;
     let bytes_per_sample: u16 = bits_per_sample / 8;
@@ -234,9 +234,9 @@ mod tests {
     #[test]
 
     fn test_wav_hdr() {
-        let _hdr = create_wav_hdr(44100, 24);
+        let _hdr = create_wav_header(44100, 24);
         //eprintln!("WAV Header (l={}): \r\n{:02x?}", hdr.len(), hdr);
-        let _hdr = create_wav_hdr(44100, 16);
+        let _hdr = create_wav_header(44100, 16);
         //eprintln!("WAV Header (l={}): \r\n{:02x?}", hdr.len(), hdr);
     }
 

@@ -14,6 +14,7 @@ use crate::{
 
 use audio::devices::Device;
 use cpal::{traits::StreamTrait, Stream};
+use crossbeam_channel::Sender;
 use log::{debug, info, LevelFilter};
 use once_cell::sync::Lazy;
 use parking_lot::RwLock;
@@ -26,6 +27,7 @@ pub mod openhome;
 pub mod server;
 pub mod streaming;
 pub mod utils;
+pub mod tcp;
 
 /// app version
 pub const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -37,6 +39,9 @@ pub const SERVER_PORT: u16 = 5901;
 // streaming clients of the webserver
 pub static CLIENTS: Lazy<RwLock<HashMap<String, ChannelStream>>> =
     Lazy::new(|| RwLock::new(HashMap::new()));
+
+pub static NEW_CLIENTS: Lazy<RwLock<Vec<Sender<Vec<f32>>>>> = Lazy::new(|| RwLock::new(Vec::new()));
+
 // the global configuration state
 pub static CONFIG: Lazy<RwLock<Configuration>> =
     Lazy::new(|| RwLock::new(Configuration::read_config()));
@@ -97,8 +102,10 @@ fn main() {
     // If silence injector is on, start the "silence_injector" thread
     start_silence_injector_thread(audio_output_device);
 
-    // finally start a webserver on the local address,
-    start_webserver_thread(config, local_addr, wav_data);
+    // // finally start a webserver on the local address,
+    // start_webserver_thread(config, local_addr, wav_data);
+
+    thread::spawn(tcp::start_server);
 
     // wait for ctrl-c
     loop { std::thread::sleep(Duration::from_secs(1)); }

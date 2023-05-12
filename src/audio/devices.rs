@@ -1,4 +1,4 @@
-use crate::CLIENTS;
+use crate::{CLIENTS, NEW_CLIENTS};
 use cpal::{
     traits::{DeviceTrait, HostTrait},
     Sample,
@@ -214,6 +214,9 @@ where
     });
     f32_samples.clear();
     f32_samples.extend(samples.iter().map(|x: &T| T::to_sample::<f32>(*x)));
+    for s in NEW_CLIENTS.read().iter() {
+        s.send(f32_samples.clone()).unwrap();
+    }
     for (_, v) in CLIENTS.read().iter() {
         v.write(f32_samples);
     }
