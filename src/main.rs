@@ -21,7 +21,7 @@ use std::{net::IpAddr, thread, time::Duration};
 pub mod audio;
 pub mod config;
 pub mod network;
-pub mod openhome;
+// pub mod openhome;
 pub mod priority;
 pub mod server;
 
@@ -59,12 +59,14 @@ fn main() {
     let config = init_config(&audio_output_device);
 
     info!("{} (v{})", APP_NAME, APP_VERSION);
-    info!("Config: {:#?}", config);
+    info!("Config: {:?}", config);
 
     // get the default network that connects to the internet
     let local_addr = load_local_addr(&config);
+    debug!("local address: {:?}", local_addr);
 
     let wav_data = audio_output_device.wav_data();
+    debug!("wav data: {:?}", wav_data);
 
     // raise process priority a bit to prevent audio stuttering under cpu load
     raise_priority();

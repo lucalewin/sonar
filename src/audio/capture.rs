@@ -1,7 +1,6 @@
 use cpal::traits::DeviceTrait;
 use dasp_sample::{Sample, ToSample};
 use log::{error, debug, info};
-use parking_lot::Once;
 
 use crate::NEW_CLIENTS;
 
@@ -85,16 +84,9 @@ fn wave_reader<T>(samples: &[T], f32_samples: &mut Vec<f32>)
 where
     T: Sample + ToSample<f32>,
 {
-    static INITIALIZER: Once = Once::new();
-    INITIALIZER.call_once(|| {
-        debug!("The wave_reader is now receiving samples");
-    });
     f32_samples.clear();
     f32_samples.extend(samples.iter().map(|x: &T| T::to_sample::<f32>(*x)));
     for s in NEW_CLIENTS.read().iter() {
         s.send(f32_samples.clone()).unwrap();
     }
-    // for (_, v) in CLIENTS.read().iter() {
-    //     v.write(f32_samples);
-    // }
 }

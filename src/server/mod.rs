@@ -6,7 +6,7 @@ use crossbeam_channel::{Sender, Receiver, unbounded};
 use dasp_sample::Sample;
 use log::{debug, error};
 
-use crate::{audio::create_wav_header, server::encoder::Encoder, NEW_CLIENTS};
+use crate::{audio::format::wav::create_header, server::encoder::Encoder, NEW_CLIENTS};
 
 const HEADERS: &str = concat!(
     "HTTP/1.1 200 OK\r\n",
@@ -43,7 +43,7 @@ fn handle_client(mut stream: TcpStream) {
     
     let mut encoder = Encoder::new(stream);
 
-    encoder.write_all(&create_wav_header(48000, 16)).unwrap();
+    encoder.write_all(&create_header(48000, 16)).unwrap();
     encoder.flush().unwrap();
 
     let (s, r): (Sender<Vec<f32>>, Receiver<Vec<f32>>) = unbounded();
