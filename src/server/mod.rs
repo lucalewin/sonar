@@ -1,5 +1,5 @@
 use crate::{
-    openhome::WavData, streaming::rwstream::ChannelStream, streaming::StreamingFormat, CLIENTS,
+    audio::WavData, streaming::rwstream::ChannelStream, streaming::StreamingFormat, CLIENTS,
     CONFIG,
 };
 use crossbeam_channel::{unbounded, Receiver, Sender};

@@ -19,14 +19,7 @@ use templates::*;
 /// Bad XML template error
 static BAD_TEMPL: &str = "Bad xml template (strfmt)";
 
-// some audio config info
-#[derive(Debug, Clone, Copy)]
-pub struct WavData {
-    pub sample_format: cpal::SampleFormat,
-    pub sample_rate: cpal::SampleRate,
-    pub channels: u16,
-}
-
+#[derive(Debug)]
 pub struct StreamInfo {
     pub sample_rate: u32,
     pub bits_per_sample: u16,

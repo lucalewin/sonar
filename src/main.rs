@@ -3,20 +3,21 @@ use crate::{
     audio::{
         devices::{capture_output_audio, get_default_audio_output_device},
         silence::run_silence_injector,
+        WavData
     },
     config::Configuration,
     network::get_local_addr,
-    openhome::WavData,
     server::start,
     streaming::rwstream::ChannelStream,
     utils::priority::raise_priority,
 };
 
-use cpal::traits::StreamTrait;
-use log::{debug, error, info, LevelFilter};
+use audio::devices::Device;
+use cpal::{traits::StreamTrait, Stream};
+use log::{debug, info, LevelFilter};
 use once_cell::sync::Lazy;
 use parking_lot::RwLock;
-use std::{collections::HashMap, net::IpAddr, thread, time::Duration};
+use std::{collections::HashMap, net::IpAddr, thread::{self, JoinHandle}, time::Duration};
 
 pub mod audio;
 pub mod config;
@@ -75,17 +76,7 @@ fn main() {
     info!("Config: {:#?}", config);
 
     // get the default network that connects to the internet
-    let local_addr: IpAddr = {
-        if config.last_network == "None" {
-            let addr = get_local_addr().expect("Could not obtain local address.");
-            let mut conf = CONFIG.write();
-            conf.last_network = addr.to_string();
-            let _ = conf.update_config();
-            addr
-        } else {
-            config.last_network.parse().unwrap()
-        }
-    };
+    let local_addr = load_local_addr(&config);
 
     // we need to pass some audio config data to the play function
     let audio_cfg = &audio_output_device
@@ -101,19 +92,44 @@ fn main() {
     raise_priority();
 
     // capture system audio
-    debug!("Try capturing system audio");
-    let stream: cpal::Stream;
-    match capture_output_audio(&audio_output_device) {
-        Some(s) => {
-            stream = s;
-            stream.play().unwrap();
-        }
-        None => {
-            error!("could not start audio capture!");
-        }
-    }
+    let _stream = start_audio_capture(&audio_output_device);
 
     // If silence injector is on, start the "silence_injector" thread
+    start_silence_injector_thread(audio_output_device);
+
+    // finally start a webserver on the local address,
+    start_webserver_thread(config, local_addr, wav_data);
+
+    // wait for ctrl-c
+    loop { std::thread::sleep(Duration::from_secs(1)); }
+}
+
+fn load_local_addr(config: &Configuration) -> IpAddr {
+    if config.last_network == "None" {
+        let addr = get_local_addr().expect("Could not obtain local address.");
+        let mut conf = CONFIG.write();
+        conf.last_network = addr.to_string();
+        let _ = conf.update_config();
+        addr
+    } else {
+        config.last_network.parse().unwrap()
+    }
+}
+
+fn start_audio_capture(audio_output_device: &Device) -> Stream {
+    debug!("Try capturing system audio");
+    match capture_output_audio(audio_output_device) {
+        Some(s) => {
+            s.play().unwrap();
+            s
+        }
+        None => {
+            panic!("could not start audio capture!");
+        }
+    }
+}
+
+fn start_silence_injector_thread(audio_output_device: Device) {
     if let Some(true) = CONFIG.read().inject_silence {
         let _ = thread::Builder::new()
             .name("silence_injector".into())
@@ -121,17 +137,13 @@ fn main() {
             .spawn(move || run_silence_injector(&audio_output_device))
             .unwrap();
     }
+}
 
-    // finally start a webserver on the local address,
+fn start_webserver_thread(config: Configuration, local_addr: IpAddr, wav_data: WavData) -> JoinHandle<()> {
     let server_port = config.server_port.unwrap_or_default();
-    let _ = thread::Builder::new()
+    thread::Builder::new()
         .name("webserver".into())
         .stack_size(4 * 1024 * 1024)
         .spawn(move || start(&local_addr, server_port, wav_data))
-        .unwrap();
-
-    // wait for ctrl-c
-    loop {
-        std::thread::sleep(Duration::from_secs(1));
-    }
+        .unwrap()
 }

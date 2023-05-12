@@ -11,11 +11,11 @@ use crate::{openhome::templates::SSDP_DISCOVER_MSG, CONFIG};
 
 use super::{AvService, Renderer, SupportedProtocols};
 
-//
-// SSDP UPNP service discovery
-//
-// returns a list of all AVTransport DLNA and Openhome rendering devices
-//
+///
+/// SSDP UPNP service discovery
+///
+/// returns a list of all AVTransport DLNA and Openhome rendering devices
+///
 pub fn discover(
     rmap: &HashMap<String, Renderer>,
     logger: &dyn Fn(String),
@@ -224,7 +224,6 @@ fn get_service_description(dev_url: &str) -> Option<String> {
 
 /// build a renderer struct by parsing the GetDescription.xml
 fn get_renderer(xml: &str) -> Option<Renderer> {
-    // let xmlstream = StringReader::new(xml);
     let parser = EventReader::new(xml.as_bytes());
     let mut cur_elem = String::new();
     let mut service = AvService::new();
