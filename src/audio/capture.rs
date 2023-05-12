@@ -2,7 +2,7 @@ use cpal::{traits::{DeviceTrait, StreamTrait}, Stream};
 use dasp_sample::{Sample, ToSample};
 use log::{debug, error, info};
 
-use crate::NEW_CLIENTS;
+use crate::CLIENTS;
 
 use super::devices::Device;
 
@@ -99,7 +99,7 @@ where
 {
     f32_samples.clear();
     f32_samples.extend(samples.iter().map(|x: &T| T::to_sample::<f32>(*x)));
-    for s in NEW_CLIENTS.read().iter() {
+    for s in CLIENTS.read().iter() {
         s.send(f32_samples.clone()).unwrap();
     }
 }

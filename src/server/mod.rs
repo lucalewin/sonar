@@ -9,7 +9,7 @@ use crossbeam_channel::{unbounded, Receiver, Sender};
 use dasp_sample::Sample;
 use log::{debug, error};
 
-use crate::{audio::format::wav::create_header, server::encoder::Encoder, NEW_CLIENTS};
+use crate::{audio::format::wav::create_header, server::encoder::Encoder, CLIENTS};
 
 const HEADERS: &str = concat!(
     "HTTP/1.1 200 OK\r\n",
@@ -44,18 +44,26 @@ fn handle_client(mut stream: TcpStream) {
     // http response header
     stream.write_all(HEADERS.as_bytes()).unwrap();
 
+    let (s, r): (Sender<Vec<f32>>, Receiver<Vec<f32>>) = unbounded();
+    CLIENTS.write().push(s);
+
+    match send_audio_stream(stream, r) {
+        Ok(()) => {},
+        Err(_) => {
+            error!("handle error: remove receiver from the client list");
+        }
+    }
+}
+
+fn send_audio_stream(stream: TcpStream, receiver: Receiver<Vec<f32>>) -> std::io::Result<()> {
     let mut encoder = Encoder::new(stream);
 
-    encoder.write_all(&create_header(48000, 16)).unwrap();
-    encoder.flush().unwrap();
-
-    let (s, r): (Sender<Vec<f32>>, Receiver<Vec<f32>>) = unbounded();
-
-    NEW_CLIENTS.write().push(s);
+    encoder.write_all(&create_header(48000, 16))?;
+    encoder.flush()?;
 
     // TODO: check if stream is still open
     loop {
-        match r.recv() {
+        match receiver.recv() {
             Ok(samples) => {
                 let mut buffer = Vec::with_capacity(samples.len() * 2);
                 for sample in samples {
@@ -64,8 +72,8 @@ fn handle_client(mut stream: TcpStream) {
                     buffer.extend_from_slice(&sample.to_le_bytes());
                 }
 
-                encoder.write_all(&buffer).unwrap();
-                encoder.flush().unwrap();
+                encoder.write_all(&buffer)?;
+                encoder.flush()?;
             }
             Err(e) => error!("error occured: {e}"),
         }
