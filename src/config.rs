@@ -1,4 +1,4 @@
-use crate::{streaming::StreamingFormat, SERVER_PORT};
+use crate::{audio::format::StreamingFormat, SERVER_PORT};
 use lexopt::{prelude::*, Parser};
 use log::LevelFilter;
 use serde::{Deserialize, Serialize};

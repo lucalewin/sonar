@@ -7,7 +7,7 @@ mod templates;
 #[cfg(test)]
 mod tests;
 
-use crate::streaming::StreamingFormat;
+use crate::audio::format::StreamingFormat;
 use bitflags::bitflags;
 use log::{debug, error};
 use std::{collections::HashMap, net::IpAddr, time::Duration};

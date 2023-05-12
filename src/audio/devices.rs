@@ -1,6 +1,8 @@
 use cpal::traits::{DeviceTrait, HostTrait};
 use log::debug;
 
+use super::WavData;
+
 /// A [cpal::Device] with either a default input or default output config.
 pub enum Device {
     Input(cpal::Device),
@@ -41,6 +43,16 @@ impl Device {
         match self {
             Device::Input(device) => device.name(),
             Device::Output(device) => device.name(),
+        }
+    }
+
+    pub fn wav_data(&self) -> WavData {
+        let config = self.default_config_any().unwrap();
+
+        WavData {
+            sample_format: config.sample_format(),
+            sample_rate: config.sample_rate(),
+            channels: config.channels()
         }
     }
 }

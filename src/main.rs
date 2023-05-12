@@ -4,12 +4,10 @@ use crate::{
         capture::capture_output_audio,
         devices::get_default_audio_output_device,
         silence::run_silence_injector,
-        WavData
     },
     config::Configuration,
     network::get_local_addr,
-    streaming::rwstream::ChannelStream,
-    utils::priority::raise_priority,
+    priority::raise_priority,
 };
 
 use audio::devices::Device;
@@ -18,14 +16,13 @@ use crossbeam_channel::Sender;
 use log::{debug, info, LevelFilter};
 use once_cell::sync::Lazy;
 use parking_lot::RwLock;
-use std::{collections::HashMap, net::IpAddr, thread, time::Duration};
+use std::{net::IpAddr, thread, time::Duration};
 
 pub mod audio;
 pub mod config;
 pub mod network;
 pub mod openhome;
-pub mod streaming;
-pub mod utils;
+pub mod priority;
 pub mod server;
 
 /// app version
@@ -34,10 +31,6 @@ pub const APP_NAME: &str = "Sonar";
 
 /// the HTTP server port
 pub const SERVER_PORT: u16 = 5901;
-
-// streaming clients of the webserver
-// pub static CLIENTS: Lazy<RwLock<HashMap<String, ChannelStream>>> =
-//     Lazy::new(|| RwLock::new(HashMap::new()));
 
 pub static NEW_CLIENTS: Lazy<RwLock<Vec<Sender<Vec<f32>>>>> = Lazy::new(|| RwLock::new(Vec::new()));
 
@@ -71,15 +64,7 @@ fn main() {
     // get the default network that connects to the internet
     let local_addr = load_local_addr(&config);
 
-    // we need to pass some audio config data to the play function
-    let audio_cfg = &audio_output_device
-        .default_config_any()
-        .expect("No default input or output config found");
-    let wav_data = WavData {
-        sample_format: audio_cfg.sample_format(),
-        sample_rate: audio_cfg.sample_rate(),
-        channels: audio_cfg.channels(),
-    };
+    let wav_data = audio_output_device.wav_data();
 
     // raise process priority a bit to prevent audio stuttering under cpu load
     raise_priority();
@@ -139,12 +124,3 @@ fn start_silence_injector_thread(audio_output_device: Device) {
             .unwrap();
     }
 }
-
-// fn start_webserver_thread(config: Configuration, local_addr: IpAddr, wav_data: WavData) -> JoinHandle<()> {
-//     let server_port = config.server_port.unwrap_or_default();
-//     thread::Builder::new()
-//         .name("webserver".into())
-//         .stack_size(4 * 1024 * 1024)
-//         .spawn(move || start(&local_addr, server_port, wav_data))
-//         .unwrap()
-// }
