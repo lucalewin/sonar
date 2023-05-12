@@ -15,10 +15,6 @@ const HEADERS: &str = concat!(
     "HTTP/1.1 200 OK\r\n",
     "Connection: close\r\n",
     "Content-Type: audio/vnd.wave;codec=1\r\n",
-    "TransferMode.DLNA.ORG: Streaming\r\n",
-    "Server: UPnP/1.0 DLNADOC/1.50 LAB/1.0\r\n",
-    "Accept-Ranges: none\r\n",
-    "icy-name: sonar\r\n",
     "Transfer-Encoding: chunked\r\n",
     "\r\n"
 );
