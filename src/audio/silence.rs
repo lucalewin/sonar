@@ -8,6 +8,16 @@ use dasp_sample::Sample;
 
 use super::devices::Device;
 
+// fn start_silence_injector_thread(_audio_output_device: Device) {
+//     if let Some(true) = CONFIG.read().inject_silence {
+//         let _ = thread::Builder::new()
+//             .name("silence_injector".into())
+//             .stack_size(4 * 1024 * 1024)
+//             .spawn(move || run_silence_injector(&audio_output_device))
+//             .unwrap();
+//     }
+// }
+
 /// inject silence into the audio stream to
 /// solve problems with Sonos when pusing audio
 pub fn run_silence_injector(device: &Device) {
