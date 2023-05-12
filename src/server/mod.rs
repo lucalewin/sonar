@@ -1,4 +1,4 @@
-mod encoder;
+pub mod encoder;
 
 use std::{net::{TcpListener, TcpStream}, io::{BufReader, BufRead, Write}};
 
