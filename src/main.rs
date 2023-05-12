@@ -1,13 +1,13 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // to suppress console with debug output for release builds
 use crate::{
     audio::{
-        devices::{capture_output_audio, get_default_audio_output_device},
+        capture::capture_output_audio,
+        devices::get_default_audio_output_device,
         silence::run_silence_injector,
         WavData
     },
     config::Configuration,
     network::get_local_addr,
-    server::start,
     streaming::rwstream::ChannelStream,
     utils::priority::raise_priority,
 };
@@ -18,16 +18,15 @@ use crossbeam_channel::Sender;
 use log::{debug, info, LevelFilter};
 use once_cell::sync::Lazy;
 use parking_lot::RwLock;
-use std::{collections::HashMap, net::IpAddr, thread::{self, JoinHandle}, time::Duration};
+use std::{collections::HashMap, net::IpAddr, thread, time::Duration};
 
 pub mod audio;
 pub mod config;
 pub mod network;
 pub mod openhome;
-pub mod server;
 pub mod streaming;
 pub mod utils;
-pub mod tcp;
+pub mod server;
 
 /// app version
 pub const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -37,8 +36,8 @@ pub const APP_NAME: &str = "Sonar";
 pub const SERVER_PORT: u16 = 5901;
 
 // streaming clients of the webserver
-pub static CLIENTS: Lazy<RwLock<HashMap<String, ChannelStream>>> =
-    Lazy::new(|| RwLock::new(HashMap::new()));
+// pub static CLIENTS: Lazy<RwLock<HashMap<String, ChannelStream>>> =
+//     Lazy::new(|| RwLock::new(HashMap::new()));
 
 pub static NEW_CLIENTS: Lazy<RwLock<Vec<Sender<Vec<f32>>>>> = Lazy::new(|| RwLock::new(Vec::new()));
 
@@ -46,13 +45,10 @@ pub static NEW_CLIENTS: Lazy<RwLock<Vec<Sender<Vec<f32>>>>> = Lazy::new(|| RwLoc
 pub static CONFIG: Lazy<RwLock<Configuration>> =
     Lazy::new(|| RwLock::new(Configuration::read_config()));
 
-/// swyh-rs
+/// Sonar
 ///
-/// - set up the fltk GUI
 /// - setup and start audio capture
 /// - start the streaming webserver
-/// - start ssdp discovery of media renderers thread
-/// - run the GUI, and show any renderers found in the GUI as buttons (to start/stop playing)
 fn main() {
     // init logger
     env_logger::builder()
@@ -67,17 +63,9 @@ fn main() {
     let audio_output_device = get_default_audio_output_device().expect("No default audio device");
 
     // initialize config
-    let config = {
-        let mut conf = CONFIG.write();
-        if conf.sound_source == "None" {
-            conf.sound_source = audio_output_device.name().unwrap();
-            let _ = conf.update_config();
-        }
-        conf.clone()
-    };
+    let config = init_config(&audio_output_device);
 
     info!("{} (v{})", APP_NAME, APP_VERSION);
-
     info!("Config: {:#?}", config);
 
     // get the default network that connects to the internet
@@ -102,13 +90,19 @@ fn main() {
     // If silence injector is on, start the "silence_injector" thread
     start_silence_injector_thread(audio_output_device);
 
-    // // finally start a webserver on the local address,
-    // start_webserver_thread(config, local_addr, wav_data);
-
-    thread::spawn(tcp::start_server);
+    thread::spawn(server::start_server);
 
     // wait for ctrl-c
     loop { std::thread::sleep(Duration::from_secs(1)); }
+}
+
+fn init_config(audio_output_device: &Device) -> Configuration {
+    let mut conf = CONFIG.write();
+    if conf.sound_source == "None" {
+        conf.sound_source = audio_output_device.name().unwrap();
+        let _ = conf.update_config();
+    }
+    conf.clone()
 }
 
 fn load_local_addr(config: &Configuration) -> IpAddr {
@@ -146,11 +140,11 @@ fn start_silence_injector_thread(audio_output_device: Device) {
     }
 }
 
-fn start_webserver_thread(config: Configuration, local_addr: IpAddr, wav_data: WavData) -> JoinHandle<()> {
-    let server_port = config.server_port.unwrap_or_default();
-    thread::Builder::new()
-        .name("webserver".into())
-        .stack_size(4 * 1024 * 1024)
-        .spawn(move || start(&local_addr, server_port, wav_data))
-        .unwrap()
-}
+// fn start_webserver_thread(config: Configuration, local_addr: IpAddr, wav_data: WavData) -> JoinHandle<()> {
+//     let server_port = config.server_port.unwrap_or_default();
+//     thread::Builder::new()
+//         .name("webserver".into())
+//         .stack_size(4 * 1024 * 1024)
+//         .spawn(move || start(&local_addr, server_port, wav_data))
+//         .unwrap()
+// }

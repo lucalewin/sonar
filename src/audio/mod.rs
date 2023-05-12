@@ -1,6 +1,7 @@
 pub mod devices;
 pub mod flac;
 pub mod silence;
+pub mod capture;
 
 /// some audio config info
 #[derive(Debug, Clone, Copy)]
