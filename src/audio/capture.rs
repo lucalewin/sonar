@@ -1,6 +1,6 @@
 use cpal::traits::DeviceTrait;
 use dasp_sample::{Sample, ToSample};
-use log::{error, debug, info};
+use log::{debug, error, info};
 
 use crate::NEW_CLIENTS;
 

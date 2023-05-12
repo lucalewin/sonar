@@ -1,8 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // to suppress console with debug output for release builds
 use crate::{
     audio::{
-        capture::capture_output_audio,
-        devices::get_default_audio_output_device,
+        capture::capture_output_audio, devices::get_default_audio_output_device,
         silence::run_silence_injector,
     },
     config::Configuration,
@@ -80,7 +79,9 @@ fn main() {
     thread::spawn(server::start_server);
 
     // wait for ctrl-c
-    loop { std::thread::sleep(Duration::from_secs(1)); }
+    loop {
+        std::thread::sleep(Duration::from_secs(1));
+    }
 }
 
 fn init_config(audio_output_device: &Device) -> Configuration {

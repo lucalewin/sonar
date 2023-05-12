@@ -52,7 +52,7 @@ impl Device {
         WavData {
             sample_format: config.sample_format(),
             sample_rate: config.sample_rate(),
-            channels: config.channels()
+            channels: config.channels(),
         }
     }
 }

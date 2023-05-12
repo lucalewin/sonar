@@ -1,7 +1,7 @@
-pub mod devices;
-pub mod silence;
 pub mod capture;
+pub mod devices;
 pub mod format;
+pub mod silence;
 
 /// some audio config info
 #[derive(Debug, Clone, Copy)]

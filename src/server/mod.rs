@@ -1,8 +1,11 @@
 pub mod encoder;
 
-use std::{net::{TcpListener, TcpStream}, io::{BufReader, BufRead, Write}};
+use std::{
+    io::{BufRead, BufReader, Write},
+    net::{TcpListener, TcpStream},
+};
 
-use crossbeam_channel::{Sender, Receiver, unbounded};
+use crossbeam_channel::{unbounded, Receiver, Sender};
 use dasp_sample::Sample;
 use log::{debug, error};
 
@@ -24,7 +27,7 @@ pub fn start_server() {
     let listener = TcpListener::bind("0.0.0.0:5901").unwrap();
 
     for incoming in listener.incoming() {
-        std::thread::spawn(|| { handle_client(incoming.unwrap()) });
+        std::thread::spawn(|| handle_client(incoming.unwrap()));
     }
 }
 
@@ -36,11 +39,15 @@ fn handle_client(mut stream: TcpStream) {
         .take_while(|line| !line.is_empty())
         .collect();
 
-    debug!("Request ({}): {:#?}", stream.peer_addr().unwrap(), http_request);
-    
+    debug!(
+        "Request ({}): {:#?}",
+        stream.peer_addr().unwrap(),
+        http_request
+    );
+
     // http response header
     stream.write_all(HEADERS.as_bytes()).unwrap();
-    
+
     let mut encoder = Encoder::new(stream);
 
     encoder.write_all(&create_header(48000, 16)).unwrap();
@@ -63,8 +70,8 @@ fn handle_client(mut stream: TcpStream) {
 
                 encoder.write_all(&buffer).unwrap();
                 encoder.flush().unwrap();
-            },
-            Err(e) => error!("error occured: {e}")
+            }
+            Err(e) => error!("error occured: {e}"),
         }
     }
 }
