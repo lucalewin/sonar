@@ -1,31 +1,25 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // to suppress console with debug output for release builds
-use crate::{
-    audio::{
-        capture::capture_output_audio, devices::get_default_audio_output_device,
-    },
-    priority::raise_priority, config::Config,
-};
+use crate::{audio::capture::capture_output_audio, config::Config, priority::raise_priority};
 
 use audio::devices::Device;
-use cpal::{traits::StreamTrait, Stream};
+use cpal::{
+    traits::{HostTrait, StreamTrait},
+    Stream,
+};
 use crossbeam_channel::Sender;
 use log::{debug, info, LevelFilter};
 use once_cell::sync::Lazy;
 use parking_lot::RwLock;
-use std::{thread, time::Duration};
+use std::thread;
 
 pub mod audio;
+pub mod config;
 pub mod network;
 pub mod priority;
 pub mod server;
-pub mod config;
 
-/// app version
 pub const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
-pub const APP_NAME: &str = "Sonar";
-
-/// the HTTP server port
-pub const SERVER_PORT: u16 = 5901;
+pub const APP_NAME: &str = env!("CARGO_PKG_NAME");
 
 pub static NEW_CLIENTS: Lazy<RwLock<Vec<Sender<Vec<f32>>>>> = Lazy::new(|| RwLock::new(Vec::new()));
 pub static CONFIG: Lazy<RwLock<Config>> = Lazy::new(|| RwLock::new(Config::load()));
@@ -35,70 +29,36 @@ pub static CONFIG: Lazy<RwLock<Config>> = Lazy::new(|| RwLock::new(Config::load(
 /// - setup and start audio capture
 /// - start the streaming webserver
 fn main() {
-    // init logger
     env_logger::builder()
         .filter_level(if cfg!(debug_assertions) {
             LevelFilter::Debug
         } else {
-            LevelFilter::Info
+            CONFIG.read().app.log_level
         })
         .init();
 
-    let _ = Config::load();
-
-    // first initialize cpal audio to prevent COM reinitialize panic on Windows
-    let audio_output_device = get_default_audio_output_device().expect("No default audio device");
-
-    // initialize config
-    // let config = init_config(&audio_output_device);
-
     info!("{} (v{})", APP_NAME, APP_VERSION);
-    info!("Config: {:#?}", CONFIG.read());
+    info!("Config: {:?}", CONFIG.read());
 
-    // // get the default network that connects to the internet
-    // let local_addr = load_local_addr(&config);
-    // debug!("local address: {:?}", local_addr);
+    // first initialize cpal audio to prevent
+    // COM reinitialize panic on Windows
+    let audio_device = cpal::default_host()
+        .default_output_device()
+        .map(Device::Output)
+        .expect("No default audio device found!");
 
-    let wav_data = audio_output_device.wav_data();
-    debug!("wav data: {:?}", wav_data);
-
-    // raise process priority a bit to prevent audio stuttering under cpu load
+    // raise process priority a bit to prevent
+    // audio stuttering under cpu load
     raise_priority();
 
-    // capture system audio
-    let _stream = start_audio_capture(&audio_output_device);
+    // start the capture of the system audio
+    // this variable needs to be keept in scope
+    // otherwise the audio capture would stop
+    let _stream = start_audio_capture(&audio_device);
 
-    // If silence injector is on, start the "silence_injector" thread
-    start_silence_injector_thread(audio_output_device);
-
-    thread::spawn(server::start_server);
-
-    // wait for ctrl-c
-    loop {
-        std::thread::sleep(Duration::from_secs(1));
-    }
+    // start the http webserver
+    thread::spawn(server::start_server).join().unwrap();
 }
-
-// fn init_config(audio_output_device: &Device) -> Configuration {
-//     let mut conf = CONFIG.write();
-//     if conf.sound_source == "None" {
-//         conf.sound_source = audio_output_device.name().unwrap();
-//         let _ = conf.update_config();
-//     }
-//     conf.clone()
-// }
-
-// fn load_local_addr(config: &Configuration) -> IpAddr {
-//     if config.last_network == "None" {
-//         let addr = get_local_addr().expect("Could not obtain local address.");
-//         let mut conf = CONFIG.write();
-//         conf.last_network = addr.to_string();
-//         let _ = conf.update_config();
-//         addr
-//     } else {
-//         config.last_network.parse().unwrap()
-//     }
-// }
 
 fn start_audio_capture(audio_output_device: &Device) -> Stream {
     debug!("Try capturing system audio");
@@ -113,12 +73,12 @@ fn start_audio_capture(audio_output_device: &Device) -> Stream {
     }
 }
 
-fn start_silence_injector_thread(_audio_output_device: Device) {
-    // if let Some(true) = CONFIG.read().inject_silence {
-    //     let _ = thread::Builder::new()
-    //         .name("silence_injector".into())
-    //         .stack_size(4 * 1024 * 1024)
-    //         .spawn(move || run_silence_injector(&audio_output_device))
-    //         .unwrap();
-    // }
-}
+// fn start_silence_injector_thread(_audio_output_device: Device) {
+//     if let Some(true) = CONFIG.read().inject_silence {
+//         let _ = thread::Builder::new()
+//             .name("silence_injector".into())
+//             .stack_size(4 * 1024 * 1024)
+//             .spawn(move || run_silence_injector(&audio_output_device))
+//             .unwrap();
+//     }
+// }
