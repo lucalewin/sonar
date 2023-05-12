@@ -1,10 +1,23 @@
-use cpal::traits::DeviceTrait;
+use cpal::{traits::{DeviceTrait, StreamTrait}, Stream};
 use dasp_sample::{Sample, ToSample};
 use log::{debug, error, info};
 
 use crate::NEW_CLIENTS;
 
 use super::devices::Device;
+
+pub fn start_audio_capture(audio_output_device: &Device) -> Stream {
+    debug!("Try capturing system audio");
+    match capture_output_audio(audio_output_device) {
+        Some(s) => {
+            s.play().unwrap();
+            s
+        }
+        None => {
+            panic!("could not start audio capture!");
+        }
+    }
+}
 
 /// capture_audio_output - capture the audio stream from the default audio output device
 ///

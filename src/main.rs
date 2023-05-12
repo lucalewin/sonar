@@ -1,13 +1,10 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // to suppress console with debug output for release builds
-use crate::{audio::capture::capture_output_audio, config::Config, priority::raise_priority};
+use crate::{audio::capture::start_audio_capture, config::Config, priority::raise_priority};
 
 use audio::devices::Device;
-use cpal::{
-    traits::{HostTrait, StreamTrait},
-    Stream,
-};
+use cpal::traits::HostTrait;
 use crossbeam_channel::Sender;
-use log::{debug, info, LevelFilter};
+use log::{info, LevelFilter};
 use once_cell::sync::Lazy;
 use parking_lot::RwLock;
 use std::thread;
@@ -58,19 +55,6 @@ fn main() {
 
     // start the http webserver
     thread::spawn(server::start_server).join().unwrap();
-}
-
-fn start_audio_capture(audio_output_device: &Device) -> Stream {
-    debug!("Try capturing system audio");
-    match capture_output_audio(audio_output_device) {
-        Some(s) => {
-            s.play().unwrap();
-            s
-        }
-        None => {
-            panic!("could not start audio capture!");
-        }
-    }
 }
 
 // fn start_silence_injector_thread(_audio_output_device: Device) {
