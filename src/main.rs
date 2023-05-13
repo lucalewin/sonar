@@ -26,14 +26,11 @@ pub static CONFIG: Lazy<RwLock<Config>> = Lazy::new(|| RwLock::new(Config::load(
 /// - setup and start audio capture
 /// - start the streaming webserver
 fn main() {
-
     let log_level = if cfg!(debug_assertions) {
         LevelFilter::Debug
     } else {
         CONFIG.read().app.log_level
     };
-
-    println!("log level: {}", log_level);
 
     env_logger::builder()
         .filter_level(log_level)
