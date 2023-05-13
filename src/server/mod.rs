@@ -5,9 +5,9 @@ use std::{
     net::{TcpListener, TcpStream},
 };
 
-use crossbeam_channel::{unbounded, Receiver, Sender};
+use crossbeam_channel::{unbounded, Receiver};
 use dasp_sample::Sample;
-use log::{debug, error};
+use log::{debug, error, info};
 
 use crate::{audio::format::wav::create_header, server::encoder::Encoder, CLIENTS};
 
@@ -20,6 +20,8 @@ const HEADERS: &str = concat!(
 );
 
 pub fn start_server() {
+    info!("starting server on '0.0.0.0:5901'");
+
     let listener = TcpListener::bind("0.0.0.0:5901").unwrap();
 
     for incoming in listener.incoming() {
@@ -34,7 +36,10 @@ fn handle_client(mut stream: TcpStream) {
         .map(|result| result.unwrap())
         .take_while(|line| !line.is_empty())
         .collect();
-
+    
+    let ip = stream.peer_addr().unwrap().ip();
+    
+    info!("client '{}' connected", ip);
     debug!(
         "Request ({}): {:#?}",
         stream.peer_addr().unwrap(),
@@ -44,24 +49,25 @@ fn handle_client(mut stream: TcpStream) {
     // http response header
     stream.write_all(HEADERS.as_bytes()).unwrap();
 
-    let (s, r): (Sender<Vec<f32>>, Receiver<Vec<f32>>) = unbounded();
-    CLIENTS.write().push(s);
+    let (s, r) = unbounded();
+    CLIENTS.write().insert(ip, s);
 
-    match send_audio_stream(stream, r) {
+    match send_audio_stream(&stream, r) {
         Ok(()) => {},
         Err(_) => {
-            error!("handle error: remove receiver from the client list");
+            CLIENTS.write().remove(&ip);
+            info!("client '{}' disconnected", ip);
         }
     }
 }
 
-fn send_audio_stream(stream: TcpStream, receiver: Receiver<Vec<f32>>) -> std::io::Result<()> {
+/// returns Err when the tcp stream is closed and the data cannot be flushed anymore
+fn send_audio_stream(stream: &TcpStream, receiver: Receiver<Vec<f32>>) -> std::io::Result<()> {
     let mut encoder = Encoder::new(stream);
 
     encoder.write_all(&create_header(48000, 16))?;
     encoder.flush()?;
 
-    // TODO: check if stream is still open
     loop {
         match receiver.recv() {
             Ok(samples) => {

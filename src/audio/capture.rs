@@ -2,7 +2,7 @@ use cpal::{traits::{DeviceTrait, StreamTrait}, Stream};
 use dasp_sample::{Sample, ToSample};
 use log::{debug, error, info};
 
-use crate::CLIENTS;
+use crate::{CLIENTS};
 
 use super::devices::Device;
 
@@ -41,7 +41,8 @@ pub fn capture_output_audio(
     match audio_cfg.sample_format() {
         cpal::SampleFormat::F32 => match device.build_input_stream(
             &audio_cfg.config(),
-            move |data, _: &_| wave_reader::<f32>(data, &mut f32_samples),
+            move |data, _: &_| wave_reader_f32(data),
+            // move |data, _: &_| wave_reader::<f32>(data, &mut f32_samples),
             capture_err_fn,
             None,
         ) {
@@ -99,7 +100,13 @@ where
 {
     f32_samples.clear();
     f32_samples.extend(samples.iter().map(|x: &T| T::to_sample::<f32>(*x)));
-    for s in CLIENTS.read().iter() {
+    for (_, s) in CLIENTS.read().iter() {
         s.send(f32_samples.clone()).unwrap();
+    }
+}
+
+fn wave_reader_f32(samples: &[f32]) {
+    for (_, s) in CLIENTS.read().iter() {
+        s.send(samples.to_vec()).unwrap();
     }
 }

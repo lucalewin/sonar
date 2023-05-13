@@ -1,13 +1,13 @@
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // to suppress console with debug output for release builds
+// #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // to suppress console with debug output for release builds
 use crate::{audio::capture::start_audio_capture, config::Config, priority::raise_priority};
 
 use audio::devices::Device;
 use cpal::traits::HostTrait;
 use crossbeam_channel::Sender;
-use log::{info, LevelFilter};
+use log::{info, LevelFilter, debug};
 use once_cell::sync::Lazy;
 use parking_lot::RwLock;
-use std::thread;
+use std::{thread, collections::HashMap, net::IpAddr};
 
 pub mod audio;
 pub mod config;
@@ -18,7 +18,7 @@ pub mod server;
 pub const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const APP_NAME: &str = env!("CARGO_PKG_NAME");
 
-pub static CLIENTS: Lazy<RwLock<Vec<Sender<Vec<f32>>>>> = Lazy::new(|| RwLock::new(Vec::new()));
+pub static CLIENTS: Lazy<RwLock<HashMap<IpAddr, Sender<Vec<f32>>>>> = Lazy::new(|| RwLock::new(HashMap::new()));
 pub static CONFIG: Lazy<RwLock<Config>> = Lazy::new(|| RwLock::new(Config::load()));
 
 /// Sonar
@@ -26,16 +26,21 @@ pub static CONFIG: Lazy<RwLock<Config>> = Lazy::new(|| RwLock::new(Config::load(
 /// - setup and start audio capture
 /// - start the streaming webserver
 fn main() {
+
+    let log_level = if cfg!(debug_assertions) {
+        LevelFilter::Debug
+    } else {
+        CONFIG.read().app.log_level
+    };
+
+    println!("log level: {}", log_level);
+
     env_logger::builder()
-        .filter_level(if cfg!(debug_assertions) {
-            LevelFilter::Debug
-        } else {
-            CONFIG.read().app.log_level
-        })
+        .filter_level(log_level)
         .init();
 
     info!("{} (v{})", APP_NAME, APP_VERSION);
-    info!("Config: {:?}", CONFIG.read());
+    debug!("Config: {:?}", CONFIG.read());
 
     // first initialize cpal audio to prevent
     // COM reinitialize panic on Windows
