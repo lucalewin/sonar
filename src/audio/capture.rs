@@ -2,7 +2,7 @@ use cpal::{traits::{DeviceTrait, StreamTrait}, Stream};
 use dasp_sample::{Sample, ToSample};
 use log::{debug, error, info};
 
-use crate::{CLIENTS};
+use crate::CLIENTS;
 
 use super::devices::Device;
 
