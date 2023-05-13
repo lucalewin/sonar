@@ -49,7 +49,7 @@ pub struct RendererConfig {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AudioConfig {
     pub format: StreamingFormat,
-    pub bits_per_sample: u8,
+    pub bits_per_sample: u16,
 }
 
 impl Default for AppConfig {
