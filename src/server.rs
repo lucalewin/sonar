@@ -3,7 +3,7 @@ use std::{
     net::{TcpListener, TcpStream}, error::Error,
 };
 
-use crossbeam_channel::{unbounded, Receiver};
+use crossbeam_channel::{Receiver, bounded};
 use dasp_sample::Sample;
 use log::{debug, info};
 
@@ -51,7 +51,7 @@ fn handle_client(mut stream: TcpStream) {
     // http response header
     stream.write_all(HEADERS.as_bytes()).unwrap();
 
-    let (s, r) = unbounded();
+    let (s, r) = bounded(1);
     CLIENTS.write().insert(ip, s);
 
     match send_audio_stream(&stream, r) {
@@ -70,12 +70,12 @@ fn send_audio_stream(stream: &TcpStream, receiver: Receiver<Vec<f32>>) -> Result
     // send wav header with an "infinite size"
     send_encoded(stream, &create_header(48000, bits_per_sample))?;
 
+    let mut buffer = Vec::with_capacity(16384);
     loop {
         // wait for samples from the audio capture thread
         let samples = receiver.recv()?;
 
         // convert f32 samples to i16 samples as bytes
-        let mut buffer = Vec::with_capacity(samples.len() * 2);
         for sample in samples {
             let sample = i16::from_sample(sample);
             buffer.extend_from_slice(&sample.to_le_bytes());
@@ -83,6 +83,9 @@ fn send_audio_stream(stream: &TcpStream, receiver: Receiver<Vec<f32>>) -> Result
 
         // send buffer to client
         send_encoded(stream, &buffer)?;
+
+        // clear the buffer for the next samples
+        buffer.clear();
     }
 }
 

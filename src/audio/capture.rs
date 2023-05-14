@@ -22,10 +22,7 @@ pub fn start_audio_capture(audio_output_device: &Device) -> Stream {
 /// capture_audio_output - capture the audio stream from the default audio output device
 ///
 /// sets up an input stream for the wave_reader in the appropriate format (f32/i16/u16)
-pub fn capture_output_audio(
-    device_wrap: &Device,
-    // rms_sender: Sender<Vec<f32>>,
-) -> Option<cpal::Stream> {
+pub fn capture_output_audio(device_wrap: &Device) -> Option<Stream> {
     let device = device_wrap.as_ref();
     info!(
         "Capturing audio from: {}",
@@ -42,7 +39,6 @@ pub fn capture_output_audio(
         cpal::SampleFormat::F32 => match device.build_input_stream(
             &audio_cfg.config(),
             move |data, _: &_| wave_reader_f32(data),
-            // move |data, _: &_| wave_reader::<f32>(data, &mut f32_samples),
             capture_err_fn,
             None,
         ) {
@@ -107,6 +103,6 @@ where
 
 fn wave_reader_f32(samples: &[f32]) {
     for (_, s) in CLIENTS.read().iter() {
-        s.send(samples.to_vec()).unwrap();
+        let _ = s.try_send(samples.to_vec());
     }
 }
