@@ -1,8 +1,7 @@
-// use crate::utils::ui_logger::ui_log;
+use log::{debug, error};
 
 #[cfg(target_os = "windows")]
 pub fn raise_priority() {
-    use log::{debug, error};
     use windows::Win32::{Foundation::GetLastError, System::Threading::*};
     unsafe {
         let id = GetCurrentProcess();
@@ -25,9 +24,9 @@ pub fn raise_priority() {
         let newpri = pri - 5;
         let rc = setpriority(PRIO_PROCESS, 0, newpri);
         if rc != 0 {
-            ui_log("Sorry, but you don't have permissions to raise priority...".to_string());
+            error!("Sorry, but you don't have permissions to raise priority...");
         } else {
-            ui_log(format!("Now running at nice value {newpri}"));
+            debug!("Now running at nice value {newpri}");
         }
     }
 }
